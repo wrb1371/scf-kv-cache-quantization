@@ -1,0 +1,91 @@
+{
+  "analysis": "Final selector-metric eigenspectra, aggregated over 32 layers x 8 KV heads per backbone",
+  "claim_boundary": "Cross-backbone replication of spectral concentration only; no Mistral attention-KL or new perplexity claim.",
+  "criterion_outcome": "pass",
+  "fixed_success_criteria": {
+    "full_effective_dimension_below_half_ambient": true,
+    "full_top13_exceeds_twice_uniform": true,
+    "scf_increases_effective_dimension": true,
+    "scf_lowers_top13_share": true
+  },
+  "format": "scf_cross_backbone_spectrum_v1",
+  "inputs": {
+    "Meta-Llama-3-8B": {
+      "path": "<redacted:metric.pt>",
+      "provenance": {
+        "dimension": 128,
+        "dtype_accumulation": "float64",
+        "error_surface": "pre_rope_key_projection",
+        "format": "mpe_sf_pareto_metric_v1",
+        "kv_heads": 8,
+        "layers": 32,
+        "manifest": "<redacted:metric_cal_manifest.json>",
+        "manifest_seed": 7801,
+        "manifest_sha256": "5448d992460e012b9d33ea5a11f72422b51e6af2273565a84932ae151d6324bb",
+        "model": "<redacted:Meta-Llama-3-8B>",
+        "normalization": "symmetric PSD, trace equals dimension",
+        "parent_codec": "<redacted:codec.pt>",
+        "parent_codec_sha256": "36e99297b775d8f31d5f38488b1d837d0d41961942ea1e01e0f891617b82b32a",
+        "query_surface": "post_rope",
+        "rbg_file": "<redacted:codec.pt>",
+        "rbg_sha256": "1d8f326009b25027dfaf0ae8585f940c758dadfbaedab6beec71246ec761d3ae",
+        "samples_per_window_head": 512,
+        "selection": "lexicographic causal triples; p(1-p)-weighted mid-quantiles; equal outer-product weights",
+        "stored_dtype": "float32",
+        "trajectory": "P2 explicit all 32 layers",
+        "windows": 8
+      },
+      "sha256": "5732f7ef42a09fa1562470b576e5f4083b5abdc3bcb3b0cdef643fe2077172dd"
+    },
+    "Mistral-7B-v0.1": {
+      "path": "<redacted:metric.pt>",
+      "provenance": {
+        "dimension": 128,
+        "dtype_accumulation": "float64",
+        "error_surface": "pre_rope_key_projection",
+        "format": "mpe_sf_pareto_metric_v1",
+        "kv_heads": 8,
+        "layers": 32,
+        "manifest": "<redacted:metric_cal_manifest.json>",
+        "manifest_seed": 7801,
+        "manifest_sha256": "7f63d1da7f0f15146cc5ea040c915c083f0f38683ba913026cd3a953d6c41bf5",
+        "model": "<redacted:Mistral-7B-v0___1>",
+        "normalization": "symmetric PSD, trace equals dimension",
+        "parent_codec": "<redacted:codec.pt>",
+        "parent_codec_sha256": "2a6820db0c58f930a0f5297cdf58545ab54b0944f1765a299507ad352d1317bf",
+        "query_surface": "post_rope",
+        "rbg_file": "<redacted:codec.pt>",
+        "rbg_sha256": "b3596b523b438bd3f56c11ff7d20e9c64c0d4dfa15d7c08711ff4ff4d00f2bf4",
+        "samples_per_window_head": 512,
+        "selection": "lexicographic causal triples; p(1-p)-weighted mid-quantiles; equal outer-product weights",
+        "stored_dtype": "float32",
+        "trajectory": "P2 explicit all 32 layers",
+        "windows": 8
+      },
+      "sha256": "88e0a6ffa1dda31cee6c0f0edd9515023e069ff369eea11c6080d7b87879160e"
+    }
+  },
+  "status": "complete",
+  "summaries": {
+    "Meta-Llama-3-8B": {
+      "dimension": 128,
+      "full_effective_dimension_mean": 11.947502565577636,
+      "full_top13_share_percent_mean": 43.84404199806067,
+      "matrices": 256,
+      "matrices_with_higher_scf_effective_dimension": 256,
+      "matrices_with_lower_scf_top13_share": 256,
+      "scf_effective_dimension_mean": 90.7089713817721,
+      "scf_top13_share_percent_mean": 21.074581736995228
+    },
+    "Mistral-7B-v0.1": {
+      "dimension": 128,
+      "full_effective_dimension_mean": 15.486189949854024,
+      "full_top13_share_percent_mean": 40.37130838268944,
+      "matrices": 256,
+      "matrices_with_higher_scf_effective_dimension": 256,
+      "matrices_with_lower_scf_top13_share": 256,
+      "scf_effective_dimension_mean": 99.12632624124791,
+      "scf_top13_share_percent_mean": 19.623988090384707
+    }
+  }
+}

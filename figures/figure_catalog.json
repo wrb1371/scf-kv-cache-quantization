@@ -1,0 +1,160 @@
+{
+  "figures": [
+    {
+      "archetype": "schematic-led composite",
+      "backend": "python",
+      "core_claim": "The full local Fisher spectrum can spend a finite codebook too narrowly, while SCF restores directional coverage and improves held-out attention behavior at the same representation rate.",
+      "export_formats": [
+        "svg",
+        "pdf",
+        "png",
+        "tiff"
+      ],
+      "final_exports": [
+        "figures/scf_motivation.svg",
+        "figures/scf_motivation.pdf",
+        "figures/scf_motivation.png",
+        "figures/scf_motivation.tiff"
+      ],
+      "final_size_inches": [
+        7.2,
+        2.25
+      ],
+      "generating_script": "figures/draw_scf_motivation.py",
+      "id": "fig:motivation",
+      "panels": {
+        "a": "Equal-rate schematic with two explicit 12-codeword grids; conceptual rather than empirical.",
+        "b": "Cumulative normalized metric spectrum for the full Fisher spectrum with a 50% identity floor and SCF across 256 layer-head matrices.",
+        "c": "Paired held-out attention KL across eight frozen windows.",
+        "d": "Aggregate relative changes in error under M_F, logit MSE, attention KL, and raw error."
+      },
+      "reviewer_risks": [
+        "The diagnostic is one model/backend setting and must not be presented as universal proof.",
+        "The raw-MSE trade-off must remain visible so the plot does not imply improvement in every metric.",
+        "Panel c has eight deterministic windows, not independent training seeds."
+      ],
+      "self_review_revision": "Placed all four panels in equal-width columns, expanded the schematic downward, moved panel labels upward, tightened export and caption spacing, replaced both curve-overlapping labels in panel b with compact lower-right keys whose colored line samples are explicitly equal in length, removed the ambiguous mean diamonds from panel c, and verified the result at final double-column size.",
+      "source_data": [
+        "empirical 32-layer x 8-head Fisher artifact",
+        "controlled four-layer held-out mechanism summary"
+      ],
+      "status": "accepted",
+      "surface_class": "paper_main"
+    },
+    {
+      "archetype": "quantitative grid",
+      "backend": "python",
+      "core_claim": "Relative to Euclidean assignment, SCF provides the larger PPL reduction at lower rates, while the full-spectrum Fisher control with the same identity floor and SCF converge at 2 BPA.",
+      "export_formats": [
+        "svg",
+        "pdf",
+        "png",
+        "tiff"
+      ],
+      "final_exports": [
+        "figures/geometry_attribution.svg",
+        "figures/geometry_attribution.pdf",
+        "figures/geometry_attribution.png",
+        "figures/geometry_attribution.tiff"
+      ],
+      "final_size_inches": [
+        3.35,
+        1.68
+      ],
+      "generating_script": "figures/draw_geometry_attribution.py",
+      "id": "fig:geometry_attribution",
+      "panels": {
+        "a": "WikiText-2 PPL reduction relative to the rate-matched Euclidean parent.",
+        "b": "C4 PPL reduction relative to the rate-matched Euclidean parent."
+      },
+      "reviewer_risks": [
+        "The panels show point estimates; significance is described in the manuscript rather than encoded as error bars.",
+        "Both panels must retain one shared y-axis to avoid visually exaggerating dataset differences.",
+        "Relative reduction must be interpreted against the rate-matched Euclidean parent, not across datasets."
+      ],
+      "self_review_revision": "Replaced the dense attribution table with two aligned rate-trend panels, used a shared zero-based scale, made SCF visually dominant, retained marker and line-style redundancy for grayscale reading, and added an explicit higher-is-better axis cue.",
+      "source_data": [
+        "figures/source_data/geometry_attribution.csv"
+      ],
+      "status": "accepted",
+      "surface_class": "paper_main"
+    },
+    {
+      "archetype": "two-panel sensitivity curve",
+      "backend": "python",
+      "core_claim": "The fixed p=0.5, alpha=0.5 SCF geometry lies in a useful local power/floor neighborhood on the frozen LLaMA-3-8B/GSRQ/C4/0.75-BPA setting.",
+      "export_formats": [
+        "svg",
+        "pdf",
+        "png",
+        "tiff"
+      ],
+      "final_exports": [
+        "figures/scf_sensitivity.svg",
+        "figures/scf_sensitivity.pdf",
+        "figures/scf_sensitivity.png",
+        "figures/scf_sensitivity.tiff"
+      ],
+      "final_size_inches": [
+        3.35,
+        1.48
+      ],
+      "generating_script": "figures/draw_scf_sensitivity.py",
+      "id": "fig:scf_sensitivity",
+      "panels": {
+        "a": "Spectral power at fixed alpha=0.5.",
+        "b": "Fisher mixture at fixed p=0.5."
+      },
+      "reviewer_risks": [
+        "This is a post-hoc one-setting robustness study and cannot select a new default.",
+        "All five new cells and both reused comparators must retain their sealed provenance.",
+        "Mixed or negative outcomes must remain visible."
+      ],
+      "self_review_revision": "Rejected the first render because the long vertical label clipped at single-column size; shortened the label, moved panel letters inward, placed the SCF labels below the default diamonds to separate them from the fixed-parameter titles, then accepted the final render after checking all four exports.",
+      "source_data": [
+        "../FACQ_research_handoff_2026-07-28/artifacts/experiment/scf_geometry_sensitivity_20260812/sensitivity_summary.csv"
+      ],
+      "status": "accepted",
+      "surface_class": "paper_main"
+    },
+    {
+      "archetype": "two-panel quantitative grid",
+      "backend": "python",
+      "core_claim": "Full-spectrum Fisher selector concentration and SCF broadening, both under the same identity floor, recur under the same GSRQ protocol on a second language-model backbone.",
+      "export_formats": [
+        "svg",
+        "pdf",
+        "png",
+        "tiff"
+      ],
+      "final_exports": [
+        "figures/cross_backbone_spectrum.svg",
+        "figures/cross_backbone_spectrum.pdf",
+        "figures/cross_backbone_spectrum.png",
+        "figures/cross_backbone_spectrum.tiff"
+      ],
+      "final_size_inches": [
+        3.46,
+        1.75
+      ],
+      "generating_script": "figures/draw_cross_backbone_spectrum.py",
+      "id": "fig:cross_backbone_spectrum",
+      "panels": {
+        "a": "Cumulative final selector-metric spectrum across 256 Meta-Llama-3-8B layer-head matrices.",
+        "b": "The same spectrum statistic across 256 Mistral-7B-v0.1 layer-head matrices."
+      },
+      "reviewer_risks": [
+        "The Mistral panel replicates only the spectral trend, not the held-out attention-KL diagnostic.",
+        "The two source artifacts must retain the same 32-layer, 8-head, 128-D, 8-window, 512-sample protocol.",
+        "The curves aggregate layer-head matrices; the interquartile band is not a confidence interval over model seeds."
+      ],
+      "self_review_revision": "Used a single-column two-panel layout with shared axes and legend, retained line-style redundancy for grayscale, added the leading-13 guide, renamed the full-spectrum control to make the shared identity floor explicit, and accepted the final render after inspecting the raster at manuscript size.",
+      "source_data": [
+        "figures/source_data/appendix_cross_backbone_spectrum.csv",
+        "figures/source_data/appendix_cross_backbone_spectrum_summary.json"
+      ],
+      "status": "accepted",
+      "surface_class": "paper_appendix"
+    }
+  ]
+}

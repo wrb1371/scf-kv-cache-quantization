@@ -1,0 +1,60 @@
+{
+  "cq": {
+    "calibration_tokens_per_window": 2048,
+    "calibration_windows": 16,
+    "clusters": 256,
+    "group_size_by_index_bpa": {
+      "0.75": 16,
+      "1": 8,
+      "2": 4
+    },
+    "initialization": "weighted_kmeans++",
+    "iterations": 100
+  },
+  "data": {
+    "c4": {
+      "calibration_split": "train",
+      "evaluation_split": "validation"
+    },
+    "wikitext2": {
+      "calibration_split": "train",
+      "evaluation_split": "test"
+    }
+  },
+  "fibquant": {
+    "block_dimension": 4,
+    "calibration_tokens_per_window": 512,
+    "calibration_windows": 8,
+    "clusters": 256,
+    "decode_centroid_dtype": "float16",
+    "norm_metadata_bpa": 0.125,
+    "scf_refinement_iterations": 5,
+    "selector_dtype": "float32"
+  },
+  "format": "scf_anonymous_protocol_v1",
+  "full_spectrum_floor_control": {
+    "fisher_mixture": 0.5,
+    "spectral_power": 1.0
+  },
+  "gsrq": {
+    "calibration_tokens_per_window": 2048,
+    "calibration_windows": 128,
+    "clusters": 256,
+    "iterations": 40,
+    "stages_by_index_bpa": {
+      "0.75": 12,
+      "1": 16,
+      "2": 32
+    }
+  },
+  "models": [
+    "LLaMA-2-7B",
+    "Meta-Llama-3-8B",
+    "Mistral-7B-v0.1"
+  ],
+  "scf": {
+    "fisher_mixture": 0.5,
+    "spectral_power": 0.5
+  },
+  "seed": 29
+}

@@ -1,0 +1,61 @@
+{
+  "calibration_arrow": "<LOCAL_PATH>",
+  "calibration_arrow_sha256": "75c2284f9d09ff55bc637502e263ab5c0090ca4b612a6f5d73cb1b0cc7778af1",
+  "calibration_dataset": "c4",
+  "format": "vq_calibration_manifest_v1",
+  "model": "<redacted:Meta-Llama-3-8B>",
+  "sample_manifest": [
+    {
+      "row": 221472,
+      "token_sha256": "95de028f58b860b04cc113b3edafa133ca231e3bf2b3d1bb4cd1979936970e8e",
+      "token_start": 620,
+      "tokens": 512
+    },
+    {
+      "row": 22736,
+      "token_sha256": "23ca687c4ea51c64add5715abf32aa3c7caab07b59a73eef5b3b6f7647c03fda",
+      "token_start": 522,
+      "tokens": 512
+    },
+    {
+      "row": 8478,
+      "token_sha256": "36e4ac8543bc8305f8b48deb8749e6c1963e09ba3be7a22725cef44ae475b609",
+      "token_start": 106,
+      "tokens": 512
+    },
+    {
+      "row": 22418,
+      "token_sha256": "60583f0a4223aa9b902f181943f2fee36133f28fe41371d8794c0e98212d0a6f",
+      "token_start": 1019,
+      "tokens": 512
+    },
+    {
+      "row": 86323,
+      "token_sha256": "bc48b0def8db9df814cf8a3883f6b8dd3f26c0d686f27f3bdfd55fd4b71d2273",
+      "token_start": 38,
+      "tokens": 512
+    },
+    {
+      "row": 52256,
+      "token_sha256": "769e82af246563449b141b5a55a941a23822c3c7df0628d8d17930de8888d745",
+      "token_start": 457,
+      "tokens": 512
+    },
+    {
+      "row": 44678,
+      "token_sha256": "be05727d9e797d6fd7aa3234271d30de4eec8ee0f66d5fd96c03bbea8fd83717",
+      "token_start": 112,
+      "tokens": 512
+    },
+    {
+      "row": 113747,
+      "token_sha256": "5407fc5d999c09261b2758b223865900b4daad308954ae87a507d7c4f7be99e3",
+      "token_start": 208,
+      "tokens": 512
+    }
+  ],
+  "samples": 8,
+  "sampling": "row",
+  "seed": 29,
+  "sequence_length": 512
+}

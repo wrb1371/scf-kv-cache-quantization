@@ -1,0 +1,19 @@
+dataset,bpa,geometry,ppl
+WikiText-2,0.75,Euclidean,7.732299
+WikiText-2,0.75,Full Fisher,7.716984
+WikiText-2,0.75,SCF,7.674061
+WikiText-2,1.00,Euclidean,6.774247
+WikiText-2,1.00,Full Fisher,6.691603
+WikiText-2,1.00,SCF,6.688086
+WikiText-2,2.00,Euclidean,5.816889
+WikiText-2,2.00,Full Fisher,5.774256
+WikiText-2,2.00,SCF,5.779936
+C4,0.75,Euclidean,10.768813
+C4,0.75,Full Fisher,10.608577
+C4,0.75,SCF,10.520611
+C4,1.00,Euclidean,9.020302
+C4,1.00,Full Fisher,8.884649
+C4,1.00,SCF,8.858690
+C4,2.00,Euclidean,7.472353
+C4,2.00,Full Fisher,7.422592
+C4,2.00,SCF,7.424179

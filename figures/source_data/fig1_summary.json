@@ -1,0 +1,25 @@
+{
+  "dimension": 128,
+  "effective_dimensions_full": 11.947502565577636,
+  "effective_dimensions_scf": 90.7089713817721,
+  "heldout_attention_kl_wins": 8,
+  "heldout_windows": 8,
+  "layer_head_matrices": 256,
+  "relative_deltas_percent": {
+    "$M_F$ error": -47.8202593192706,
+    "Attention KL": -36.3851152357501,
+    "Logit MSE": -41.517389587658236,
+    "Raw error": 4.445556451266786
+  },
+  "schematic_codewords_per_geometry": 12,
+  "schematic_full_grid": [
+    2,
+    6
+  ],
+  "schematic_scf_grid": [
+    3,
+    4
+  ],
+  "top_13_full_percent": 43.84404199806063,
+  "top_13_scf_percent": 21.074581736995203
+}
