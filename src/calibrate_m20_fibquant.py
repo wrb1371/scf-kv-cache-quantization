@@ -20,7 +20,7 @@ from transformers.models.llama.modeling_llama import apply_rotary_pos_emb, repea
 
 from calibrate_gsrq_codebooks import parse_layer_spec, sha256_file
 from collect_gsrq_gradient_weights import load_manifest_windows
-from facq_kvquant_aligned_ppl import (
+from ppl_utils import (
     capture_initial_hidden_states,
     layer_kwargs,
 )

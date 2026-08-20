@@ -457,7 +457,44 @@ def refine_shared_metric_codebook(
 
 
 @torch.no_grad()
-def quantize_m20_fibquant_key(
+def prepare_m20_fibquant_search(
+    decode_codebook: torch.Tensor,
+    block_whiteners: torch.Tensor,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Materialize the two static tables needed by the SCF search.
+
+    For a row-vector whitener ``W``, the deployed objective is
+    ``||(x-c) W.T||^2``. Its code-dependent terms are
+    ``-2 x (c W.T W).T + ||c W.T||^2``; the omitted ``||x W.T||^2`` is
+    constant across codewords. Precomputing both terms avoids transforming
+    every input block at runtime while preserving the selector objective.
+    """
+
+    if decode_codebook.ndim != 2 or block_whiteners.ndim != 4:
+        raise ValueError("codebook/whiteners must have shape [K,S]/[H,G,S,S]")
+    heads, blocks, subdim, trailing = map(int, block_whiteners.shape)
+    clusters, codebook_subdim = map(int, decode_codebook.shape)
+    if trailing != subdim or codebook_subdim != subdim:
+        raise ValueError("selector table geometry differs from block whiteners")
+    centers = decode_codebook.to(
+        device=block_whiteners.device, dtype=torch.float32
+    ).contiguous()
+    factors = block_whiteners.to(dtype=torch.float32).reshape(
+        heads * blocks, subdim, subdim
+    )
+    expanded = centers.unsqueeze(0).expand(heads * blocks, clusters, subdim)
+    selectors = torch.bmm(expanded, factors.transpose(1, 2))
+    norms = selectors.square().sum(-1).reshape(heads, blocks, clusters).contiguous()
+    cross_tables = torch.bmm(selectors, factors).reshape(
+        heads, blocks, clusters, subdim
+    ).contiguous()
+    if not bool(torch.isfinite(cross_tables).all()) or not bool(torch.isfinite(norms).all()):
+        raise FloatingPointError("FibQuant selector precomputation is non-finite")
+    return cross_tables, norms
+
+
+@torch.no_grad()
+def quantize_m20_fibquant_key_reference(
     states: torch.Tensor,
     rotation: torch.Tensor,
     decode_codebook: torch.Tensor,
@@ -467,7 +504,7 @@ def quantize_m20_fibquant_key(
     chunk_size: int = 8192,
     return_indices: bool = False,
 ) -> tuple[torch.Tensor, torch.Tensor | None]:
-    """Deployment-faithful SCF-FibQuant K selector and ordinary lookup decode."""
+    """Original serial deployment path retained as an equivalence oracle."""
 
     if states.ndim != 4:
         raise ValueError("states must have shape [B,H,T,D]")
@@ -520,3 +557,120 @@ def quantize_m20_fibquant_key(
     if bool(zero.any()):
         reconstructed[zero] = 0
     return reconstructed.reshape_as(states).to(states.dtype), indices_out
+
+
+@torch.no_grad()
+def quantize_m20_fibquant_key(
+    states: torch.Tensor,
+    rotation: torch.Tensor,
+    decode_codebook: torch.Tensor,
+    block_whiteners: torch.Tensor,
+    *,
+    block_size: int,
+    chunk_size: int = 8192,
+    return_indices: bool = False,
+    selector_cross_codebooks: torch.Tensor | None = None,
+    selector_norms: torch.Tensor | None = None,
+    maximum_distance_elements: int = 16 * 1024 * 1024,
+) -> tuple[torch.Tensor, torch.Tensor | None]:
+    """Batched SCF-FibQuant K assignment with ordinary lookup decoding.
+
+    Cross-term tables depend only on the frozen decode table and SCF factors.
+    Callers may materialize them once with :func:`prepare_m20_fibquant_search`.
+    The search batches head/block problems while bounding the largest distance
+    tensor; neither the metric nor the stored indices change.
+    """
+
+    if states.ndim != 4:
+        raise ValueError("states must have shape [B,H,T,D]")
+    batch, heads, tokens, dimension = map(int, states.shape)
+    if block_size < 1 or dimension % block_size:
+        raise ValueError("block size must divide dimension")
+    blocks = dimension // block_size
+    if tuple(rotation.shape) != (dimension, dimension):
+        raise ValueError("rotation has the wrong geometry")
+    if tuple(block_whiteners.shape) != (heads, blocks, block_size, block_size):
+        raise ValueError("block whiteners have the wrong geometry")
+    if decode_codebook.ndim != 2 or int(decode_codebook.shape[1]) != block_size:
+        raise ValueError("decode codebook has the wrong geometry")
+    if chunk_size < 1 or maximum_distance_elements < 1:
+        raise ValueError("chunk and distance budgets must be positive")
+    if (selector_cross_codebooks is None) != (selector_norms is None):
+        raise ValueError("selector cross tables and norms must be supplied together")
+
+    device = states.device
+    clusters = int(decode_codebook.shape[0])
+    centers = decode_codebook.to(device=device, dtype=torch.float32).contiguous()
+    whiteners = block_whiteners.to(device=device, dtype=torch.float32).contiguous()
+    if selector_cross_codebooks is None:
+        cross_tables, table_norms = prepare_m20_fibquant_search(centers, whiteners)
+    else:
+        expected_tables = (heads, blocks, clusters, block_size)
+        expected_norms = (heads, blocks, clusters)
+        if tuple(selector_cross_codebooks.shape) != expected_tables:
+            raise ValueError("precomputed selector cross tables have the wrong geometry")
+        if tuple(selector_norms.shape) != expected_norms:
+            raise ValueError("precomputed selector norms have the wrong geometry")
+        cross_tables = selector_cross_codebooks.to(device=device, dtype=torch.float32)
+        table_norms = selector_norms.to(device=device, dtype=torch.float32)
+
+    flat = states.reshape(-1, dimension).float()
+    norms = torch.linalg.vector_norm(flat, dim=-1, keepdim=True)
+    safe_norms = norms.clamp_min(torch.finfo(torch.float32).tiny)
+    rotated = (flat / safe_norms) @ rotation.to(device=device, dtype=torch.float32).T
+    grouped = rotated.reshape(batch, heads, tokens, blocks, block_size)
+
+    problems = heads * blocks
+    rows = batch * tokens
+    raw_rows = (
+        grouped.permute(1, 3, 0, 2, 4)
+        .reshape(problems, rows, block_size)
+        .contiguous()
+    )
+    selector_cross_rows = cross_tables.reshape(problems, clusters, block_size)
+    selector_table_norms = table_norms.reshape(problems, clusters)
+    indices_by_problem = torch.empty(
+        problems, rows, dtype=torch.long, device=device
+    )
+
+    row_batch = min(rows, chunk_size)
+    problems_per_batch = min(
+        problems,
+        max(1, maximum_distance_elements // max(1, row_batch * clusters)),
+    )
+    for problem_start in range(0, problems, problems_per_batch):
+        problem_stop = min(problems, problem_start + problems_per_batch)
+        current_cross_tables = selector_cross_rows[problem_start:problem_stop]
+        current_table_norms = selector_table_norms[
+            problem_start:problem_stop
+        ].unsqueeze(1)
+        cross_table_transpose = current_cross_tables.transpose(1, 2)
+        for row_start in range(0, rows, chunk_size):
+            row_stop = min(rows, row_start + chunk_size)
+            current = raw_rows[
+                problem_start:problem_stop, row_start:row_stop
+            ]
+            distances = (
+                current_table_norms
+                - 2.0 * torch.bmm(current, cross_table_transpose)
+            )
+            indices_by_problem[
+                problem_start:problem_stop, row_start:row_stop
+            ] = distances.argmin(-1)
+
+    indices = (
+        indices_by_problem.reshape(heads, blocks, batch, tokens)
+        .permute(2, 0, 3, 1)
+        .contiguous()
+    )
+    decoded = centers[indices].reshape(batch, heads, tokens, dimension)
+    reconstructed = (decoded.reshape(-1, dimension) @ rotation.to(
+        device=device, dtype=torch.float32
+    )) * norms
+    zero = norms.squeeze(-1) == 0
+    if bool(zero.any()):
+        reconstructed[zero] = 0
+    return (
+        reconstructed.reshape_as(states).to(states.dtype),
+        indices if return_indices else None,
+    )

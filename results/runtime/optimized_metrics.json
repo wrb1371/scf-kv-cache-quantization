@@ -1,0 +1,67 @@
+{
+  "contexts": {
+    "2048": {
+      "decode_delta_percent": -0.449565,
+      "logical_cache_bytes_parent": 36208640,
+      "logical_cache_bytes_scf": 36208640,
+      "parent_decode_ms_per_token": 73.58627319335938,
+      "parent_prefill_ms": 677.4620361328125,
+      "prefill_delta_percent": -6.619266,
+      "scf_decode_ms_per_token": 73.25545501708984,
+      "scf_prefill_ms": 632.6190185546875
+    },
+    "4096": {
+      "decode_delta_percent": -0.040439,
+      "logical_cache_bytes_parent": 71860224,
+      "logical_cache_bytes_scf": 71860224,
+      "parent_decode_ms_per_token": 75.9554214477539,
+      "parent_prefill_ms": 1732.8404541015625,
+      "prefill_delta_percent": -5.996887,
+      "scf_decode_ms_per_token": 75.9247055053711,
+      "scf_prefill_ms": 1628.9239501953125
+    },
+    "512": {
+      "decode_delta_percent": 4.979787,
+      "logical_cache_bytes_parent": 9469952,
+      "logical_cache_bytes_scf": 9469952,
+      "parent_decode_ms_per_token": 73.65331268310547,
+      "parent_prefill_ms": 164.47488403320312,
+      "prefill_delta_percent": -4.539909,
+      "scf_decode_ms_per_token": 77.32109069824219,
+      "scf_prefill_ms": 157.00787353515625
+    }
+  },
+  "decision": "success",
+  "equivalence": {
+    "decoded_max_abs_error": 0.0,
+    "index_mismatches": 0,
+    "parent_index_mismatches": 0,
+    "scf_layers": [
+      0,
+      15,
+      31
+    ],
+    "tests_passed": 16,
+    "token_counts": [
+      1,
+      128,
+      512
+    ]
+  },
+  "final_encoder_delta_percent": {
+    "1": -0.386096,
+    "2048": 0.43267,
+    "512": -0.709219
+  },
+  "primary_metric": "scf_decode_latency_overhead_percent",
+  "run_id": "scf_runtime_optimization_20260814",
+  "static_memory": {
+    "cross_table_bytes": 33554432,
+    "cross_table_norm_bytes": 8388608,
+    "peak_allocated_delta_mib": 40.625,
+    "scf_factor_bytes": 524288
+  },
+  "status": "complete",
+  "stretch_threshold_percent": 5.0,
+  "success_threshold_percent": 10.0
+}

@@ -11,6 +11,7 @@ from lowrate_vq.codecs import (
     fibquant_rate,
     opq_rate,
     quantize_fibquant,
+    quantize_fibquant_reference,
     quantize_opq,
 )
 from lowrate_vq.opq import fit_opq
@@ -27,7 +28,9 @@ from lowrate_vq.m20_fibquant import (
     metric_codebook_diagnostics,
     normalize_fisher,
     post_rope_fisher_samples,
+    prepare_m20_fibquant_search,
     quantize_m20_fibquant_key,
+    quantize_m20_fibquant_key_reference,
     refine_shared_metric_codebook,
 )
 
@@ -72,6 +75,32 @@ def test_fibquant_determinism_and_fusion() -> None:
     assert torch.allclose(explicit.float(), fused, atol=2e-5, rtol=2e-5)
 
 
+def test_fibquant_batched_matches_flattened_reference() -> None:
+    torch.manual_seed(5)
+    rotation = orthogonal_matrix(8, 31)
+    codebook = torch.randn(16, 2)
+    states = torch.randn(1, 2, 7, 8)
+    expected, expected_indices = quantize_fibquant_reference(
+        states,
+        rotation,
+        codebook,
+        block_size=2,
+        chunk_size=3,
+        return_indices=True,
+    )
+    actual, actual_indices = quantize_fibquant(
+        states,
+        rotation,
+        codebook,
+        block_size=2,
+        chunk_size=3,
+        return_indices=True,
+        maximum_distance_elements=64,
+    )
+    assert torch.equal(actual_indices, expected_indices)
+    assert torch.equal(actual, expected)
+
+
 def test_m20_fibquant_identity_matches_parent() -> None:
     torch.manual_seed(31)
     rotation = orthogonal_matrix(8, 29)
@@ -95,6 +124,63 @@ def test_m20_fibquant_identity_matches_parent() -> None:
     )
     assert torch.equal(parent_indices, child_indices)
     assert torch.equal(parent, child)
+
+
+def test_m20_fibquant_batched_matches_serial_reference() -> None:
+    torch.manual_seed(33)
+    rotation = orthogonal_matrix(8, 43)
+    codebook = torch.randn(16, 2)
+    whiteners = torch.randn(2, 4, 2, 2)
+    whiteners = whiteners @ whiteners.transpose(-1, -2)
+    states = torch.randn(1, 2, 7, 8)
+    expected, expected_indices = quantize_m20_fibquant_key_reference(
+        states,
+        rotation,
+        codebook,
+        whiteners,
+        block_size=2,
+        chunk_size=3,
+        return_indices=True,
+    )
+    selector_cross_tables, selector_norms = prepare_m20_fibquant_search(
+        codebook, whiteners
+    )
+    actual, actual_indices = quantize_m20_fibquant_key(
+        states,
+        rotation,
+        codebook,
+        whiteners,
+        block_size=2,
+        chunk_size=3,
+        return_indices=True,
+        selector_cross_codebooks=selector_cross_tables,
+        selector_norms=selector_norms,
+        maximum_distance_elements=64,
+    )
+    assert torch.equal(actual_indices, expected_indices)
+    assert torch.equal(actual, expected)
+
+    zero = torch.zeros_like(states[:, :, :1])
+    zero_expected, zero_expected_indices = quantize_m20_fibquant_key_reference(
+        zero,
+        rotation,
+        codebook,
+        whiteners,
+        block_size=2,
+        return_indices=True,
+    )
+    zero_actual, zero_actual_indices = quantize_m20_fibquant_key(
+        zero,
+        rotation,
+        codebook,
+        whiteners,
+        block_size=2,
+        return_indices=True,
+        selector_cross_codebooks=selector_cross_tables,
+        selector_norms=selector_norms,
+    )
+    assert torch.equal(zero_actual_indices, zero_expected_indices)
+    assert torch.equal(zero_actual, zero_expected)
 
 
 def test_m20_fibquant_geometry_sampling_and_refinement() -> None:

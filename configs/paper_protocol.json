@@ -52,6 +52,20 @@
     "Meta-Llama-3-8B",
     "Mistral-7B-v0.1"
   ],
+  "runtime_evaluation": {
+    "attention": "PyTorch eager packed-cache reference",
+    "context_lengths": [
+      512,
+      2048,
+      4096
+    ],
+    "decode_steps": 32,
+    "hardware": "NVIDIA A100 80GB PCIe",
+    "model": "Meta-Llama-3-8B-Instruct",
+    "model_dtype": "float16",
+    "repetitions": 5,
+    "warmups": 2
+  },
   "scf": {
     "fisher_mixture": 0.5,
     "spectral_power": 0.5

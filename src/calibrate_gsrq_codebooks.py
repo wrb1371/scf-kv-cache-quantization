@@ -27,7 +27,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from facq_kvquant_aligned_ppl import (  # noqa: E402
+from ppl_utils import (  # noqa: E402
     capture_initial_hidden_states,
     layer_kwargs,
 )

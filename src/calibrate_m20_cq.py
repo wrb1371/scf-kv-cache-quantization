@@ -21,7 +21,7 @@ from calibrate_cq_nova_1bit import (
 )
 from calibrate_gsrq_codebooks import parse_layer_spec, sha256_file
 from collect_gsrq_gradient_weights import load_manifest_windows
-from facq_kvquant_aligned_ppl import capture_initial_hidden_states, layer_kwargs
+from ppl_utils import capture_initial_hidden_states, layer_kwargs
 from lowrate_vq.cq import (
     GroupedKMeansFit,
     build_group_m20_whiteners,

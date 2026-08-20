@@ -27,7 +27,7 @@ def squared_distances(x: torch.Tensor, centers: torch.Tensor) -> torch.Tensor:
 
 
 @torch.no_grad()
-def quantize_fibquant(
+def quantize_fibquant_reference(
     states: torch.Tensor,
     rotation: torch.Tensor,
     codebook: torch.Tensor,
@@ -36,7 +36,7 @@ def quantize_fibquant(
     chunk_size: int = 8192,
     return_indices: bool = False,
 ) -> tuple[torch.Tensor, torch.Tensor | None]:
-    """Quantize [B,H,T,D] vectors with the FibQuant normalize/rotate codec."""
+    """Original flattened FibQuant path retained as an equivalence oracle."""
 
     if states.ndim != 4:
         raise ValueError("states must have shape [B,H,T,D]")
@@ -81,6 +81,97 @@ def quantize_fibquant(
             *original_shape[:-1], dimension // block_size
         )
     return decoded, all_indices
+
+
+@torch.no_grad()
+def quantize_fibquant(
+    states: torch.Tensor,
+    rotation: torch.Tensor,
+    codebook: torch.Tensor,
+    *,
+    block_size: int,
+    chunk_size: int = 8192,
+    return_indices: bool = False,
+    maximum_distance_elements: int = 16 * 1024 * 1024,
+) -> tuple[torch.Tensor, torch.Tensor | None]:
+    """Batched problem-wise FibQuant with the original codec semantics.
+
+    The query squared norm is constant across codewords, so the search uses
+    only the code-dependent terms of squared Euclidean distance. This removes
+    two small kernels without changing the mathematical argmin.
+    """
+
+    if states.ndim != 4:
+        raise ValueError("states must have shape [B,H,T,D]")
+    batch, heads, tokens, dimension = map(int, states.shape)
+    if tuple(rotation.shape) != (dimension, dimension):
+        raise ValueError("FibQuant rotation has the wrong geometry")
+    if codebook.ndim != 2 or int(codebook.shape[-1]) != block_size:
+        raise ValueError("FibQuant codebook has the wrong geometry")
+    if block_size < 1 or dimension % block_size:
+        raise ValueError("block size must divide the head dimension")
+    if chunk_size < 1 or maximum_distance_elements < 1:
+        raise ValueError("chunk and distance budgets must be positive")
+
+    device = states.device
+    blocks = dimension // block_size
+    clusters = int(codebook.shape[0])
+    flat = states.reshape(-1, dimension).float()
+    norms = torch.linalg.vector_norm(flat, dim=-1, keepdim=True)
+    safe_norms = norms.clamp_min(torch.finfo(torch.float32).tiny)
+    work_rotation = rotation.to(device=device, dtype=torch.float32)
+    rotated = (flat / safe_norms) @ work_rotation.T
+    grouped = rotated.reshape(batch, heads, tokens, blocks, block_size)
+
+    problems = heads * blocks
+    rows = batch * tokens
+    problem_rows = (
+        grouped.permute(1, 3, 0, 2, 4)
+        .reshape(problems, rows, block_size)
+        .contiguous()
+    )
+    table = codebook.to(device=device, dtype=torch.float32).contiguous()
+    table_norms = table.square().sum(-1)
+    indices_by_problem = torch.empty(
+        problems, rows, dtype=torch.long, device=device
+    )
+    row_batch = min(rows, chunk_size)
+    problems_per_batch = min(
+        problems,
+        max(1, maximum_distance_elements // max(1, row_batch * clusters)),
+    )
+    for problem_start in range(0, problems, problems_per_batch):
+        problem_stop = min(problems, problem_start + problems_per_batch)
+        problem_count = problem_stop - problem_start
+        expanded_table = table.unsqueeze(0).expand(problem_count, clusters, block_size)
+        table_transpose = expanded_table.transpose(1, 2)
+        expanded_norms = table_norms.expand(problem_count, clusters).unsqueeze(1)
+        for row_start in range(0, rows, chunk_size):
+            row_stop = min(rows, row_start + chunk_size)
+            current = problem_rows[
+                problem_start:problem_stop, row_start:row_stop
+            ]
+            distances = (
+                expanded_norms - 2.0 * torch.bmm(current, table_transpose)
+            )
+            indices_by_problem[
+                problem_start:problem_stop, row_start:row_stop
+            ] = distances.argmin(-1)
+
+    indices = (
+        indices_by_problem.reshape(heads, blocks, batch, tokens)
+        .permute(2, 0, 3, 1)
+        .contiguous()
+    )
+    decoded_rotated = table[indices].reshape(-1, dimension)
+    decoded = (decoded_rotated @ work_rotation) * norms
+    zero = norms.squeeze(-1) == 0
+    if bool(zero.any()):
+        decoded[zero] = 0
+    return (
+        decoded.reshape_as(states).to(dtype=states.dtype),
+        indices if return_indices else None,
+    )
 
 
 @torch.no_grad()

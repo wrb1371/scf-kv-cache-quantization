@@ -1,0 +1,4 @@
+context_length,parent_prefill_ms,scf_prefill_ms,prefill_delta_percent,parent_decode_ms_per_token,scf_decode_ms_per_token,decode_delta_percent,parent_cache_logical_bytes,scf_cache_logical_bytes,scf_peak_allocated_delta_mib
+512,164.475,157.008,-4.540,73.653,77.321,4.980,9469952,9469952,40.625
+2048,677.462,632.619,-6.619,73.586,73.255,-0.450,36208640,36208640,40.625
+4096,1732.840,1628.924,-5.997,75.955,75.925,-0.040,71860224,71860224,40.625

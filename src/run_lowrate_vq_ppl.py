@@ -18,7 +18,7 @@ import torch.nn.functional as F
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from transformers.models.llama.modeling_llama import apply_rotary_pos_emb, repeat_kv
 
-from facq_kvquant_aligned_ppl import (
+from ppl_utils import (
     capture_initial_hidden_states,
     layer_kwargs,
     load_eval_tokens,
@@ -31,7 +31,10 @@ from lowrate_vq.commvq import (
     quantize_commvq_key,
     quantize_commvq_value,
 )
-from lowrate_vq.m20_fibquant import quantize_m20_fibquant_key
+from lowrate_vq.m20_fibquant import (
+    prepare_m20_fibquant_search,
+    quantize_m20_fibquant_key,
+)
 from lowrate_vq.nova import quantize_nova_key
 
 
@@ -54,6 +57,8 @@ class CodecContext:
     value_codec: CommVQValueCodec | None = None
     key_decode_codebook: torch.Tensor | None = None
     key_block_whiteners: torch.Tensor | None = None
+    key_selector_cross_codebooks: torch.Tensor | None = None
+    key_selector_norms: torch.Tensor | None = None
     key_selector_whiteners: torch.Tensor | None = None
     key_forward: torch.Tensor | None = None
     key_inverse: torch.Tensor | None = None
@@ -128,12 +133,22 @@ def load_context(method: str, artifact_dir: Path, layer: int, chunk_size: int) -
             provenance.get("fibquant_norm_squared_weighting"), bool
         ):
             raise ValueError(f"{path} omits the v2 norm-weighting contract")
+        key_decode_codebook = artifact["key"]["decode_codebook"].float()
+        key_block_whiteners = artifact["key"]["block_whiteners"].float()
+        key_selector_cross_codebooks, key_selector_norms = (
+            prepare_m20_fibquant_search(
+                key_decode_codebook,
+                key_block_whiteners,
+            )
+        )
         return CodecContext(
             **common,
             rotation=artifact["rotation"].float(),
             codebook=artifact["value"]["codebook"].float(),
-            key_decode_codebook=artifact["key"]["decode_codebook"].float(),
-            key_block_whiteners=artifact["key"]["block_whiteners"].float(),
+            key_decode_codebook=key_decode_codebook,
+            key_block_whiteners=key_block_whiteners,
+            key_selector_cross_codebooks=key_selector_cross_codebooks,
+            key_selector_norms=key_selector_norms,
         )
     if method == "commvq":
         if int(provenance["layer"]) != layer:
@@ -235,6 +250,8 @@ def move_context(context: CodecContext, device: torch.device) -> CodecContext:
         "key_thetas",
         "key_decode_codebook",
         "key_block_whiteners",
+        "key_selector_cross_codebooks",
+        "key_selector_norms",
         "key_selector_whiteners",
         "key_forward",
         "key_inverse",
@@ -272,6 +289,8 @@ def quantize(states: torch.Tensor, context: CodecContext, kind: str) -> torch.Te
                 context.key_block_whiteners,
                 block_size=int(context.key_decode_codebook.shape[-1]),
                 chunk_size=context.chunk_size,
+                selector_cross_codebooks=context.key_selector_cross_codebooks,
+                selector_norms=context.key_selector_norms,
             )
             return decoded
         decoded, _ = quantize_fibquant(
